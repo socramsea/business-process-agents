@@ -25,11 +25,11 @@ RAIZ = Path(__file__).resolve().parent.parent
 sys.path.append(str(RAIZ))
 
 from core import config  # noqa: E402
-from core.memoria import (  # noqa: E402
-    MemoriaEmMemoria,
-    MemoriaLead,
-    MemoriaPostgres,
-    MemoriaSQLite,
+from core.memoria import MemoriaEmMemoria, MemoriaLead, MemoriaSQLite  # noqa: E402
+from core.memoria_corporativa import (  # noqa: E402
+    MemoriaCorporativa,
+    MemoriaCorporativaEmMemoria,
+    MemoriaCorporativaPostgres,
 )
 
 
@@ -97,38 +97,63 @@ def migracoes_aplicadas() -> str:
     return url
 
 
-@pytest.fixture(params=["em-memoria", "sqlite", "postgres"])
+@pytest.fixture(params=["em-memoria", "sqlite"])
 def memoria(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[MemoriaLead]:
-    """Uma implementação de MemoriaLead por rodada, sempre limpa."""
+    """
+    Uma implementação de MemoriaLead por rodada, sempre limpa.
+    One MemoriaLead implementation per round, always clean.
+
+    Duas e não três: `MemoriaPostgres` foi removida junto com o modelo que ela
+    implementava. O estado acumulado do SDR é derivado (Camada 3) e não ganha
+    persistência corporativa — a memória da empresa mora em
+    `memoria_corporativa`, com os seus próprios domínios.
+    """
     banco: MemoriaLead
 
     if request.param == "em-memoria":
         banco = MemoriaEmMemoria()
-    elif request.param == "sqlite":
-        banco = MemoriaSQLite(tmp_path / "contrato.db")
     else:
-        url = request.getfixturevalue("migracoes_aplicadas")
-        # Limpa ANTES de entregar, não depois: assim um teste que quebrou no
-        # meio não deixa lixo para o próximo interpretar como dado seu.
-        # Cleans before handing over, so a crashed test can't poison the next.
-        _esvaziar(url)
-        banco = MemoriaPostgres(url)
+        banco = MemoriaSQLite(tmp_path / "contrato.db")
 
     yield banco
-    # Sai igual para as três porque `fechar()` está no contrato. Fosse método
+    # Sai igual para as duas porque `fechar()` está no contrato. Fosse método
     # só das concretas, este preparo teria que perguntar o tipo antes.
     banco.fechar()
 
 
-def _esvaziar(url: str) -> None:
+@pytest.fixture(params=["em-memoria", "postgres"])
+def memoria_corporativa(request: pytest.FixtureRequest) -> Iterator[MemoriaCorporativa]:
     """
-    Zera a tabela entre testes.
+    A memória da empresa, uma implementação por rodada, sempre limpa.
+    Corporate memory — one implementation per round, always clean.
+
+    Duas e não três: a memória corporativa nasce com o schema das migrações, e
+    SQLite não participa dela. O SQLite continua servindo o estado legado do
+    SDR, intocado.
+    """
+    if request.param == "em-memoria":
+        banco: MemoriaCorporativa = MemoriaCorporativaEmMemoria()
+        yield banco
+        banco.fechar()
+        return
+
+    url = request.getfixturevalue("migracoes_aplicadas")
+    _esvaziar_dominios(url)
+
+    banco = MemoriaCorporativaPostgres(url)
+    yield banco
+    banco.fechar()
+
+
+def _esvaziar_dominios(url: str) -> None:
+    """
+    Zera os três domínios entre testes, na ordem das dependências.
+    Truncates the three domains, respecting foreign keys.
 
     Só recebe a URL de teste — `config.banco_url_de_teste()` recusa devolver
-    qualquer coisa igual à de produção, então este TRUNCATE não alcança dado de
-    cliente. Conexão direta em vez de reaproveitar o pool da MemoriaPostgres:
-    preparo de teste não deve depender do interior da classe que ele testa.
-    Direct connection — test setup shouldn't reach into the class under test.
+    qualquer coisa igual à de produção, então isto não alcança dado de cliente.
     """
     with psycopg.connect(url) as con:
-        con.execute("TRUNCATE TABLE lead")
+        con.execute("TRUNCATE TABLE mensagem, identidade, pessoa")
+
+

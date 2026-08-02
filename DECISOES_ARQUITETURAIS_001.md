@@ -883,5 +883,84 @@ da Fase A e está registrado aqui para não virar surpresa no meio dela.
 
 ---
 
+## 11. Decisões tomadas durante a Fase A
+
+Registradas aqui porque decisão que existe só numa conversa não é ativo da
+empresa — é lembrança de alguém.
+
+---
+
+### DE-3 · Remoção da `MemoriaPostgres` — **RESOLVIDA (2026-08-02)**
+
+**O conflito.** A `MemoriaPostgres`, versionada na Fase 1, implementava o
+contrato `MemoriaLead`: `(tenant_id, lead_id) → blob`, sobre uma tabela `lead`.
+A migração `0001` da Fase A não cria `lead` — modelar a pessoa como registro é
+o que §1 proíbe. Resultado medido: 6 erros,
+`psycopg.errors.UndefinedTable: relation "lead" does not exist`.
+
+**Decisão do Marcos:** remover a `MemoriaPostgres`.
+
+**Razões, na ordem em que pesam:**
+
+1. Ela implementa o modelo de registro que a constituição rejeita.
+2. **Zero consumidores de produção** — só o preparo dos testes a construía.
+3. O estado acumulado do SDR é **Camada 3** por §3: derivado e recalculável a
+   partir das Mensagens. Não merece persistência corporativa.
+4. Manter classe sem tabela, sem uso e sem teste seria infraestrutura órfã —
+   e o projeto já classificou isso como dívida ao encontrá-la em outros lugares.
+
+**O que NÃO foi feito, e é parte da decisão:** não se recriou `lead`, não se
+criou tabela substituta para o blob, e o estado do SDR não foi migrado para a
+memória corporativa. `MemoriaLead`, `MemoriaEmMemoria` e `MemoriaSQLite`
+continuam intactos servindo o fluxo legado.
+
+**Alternativas descartadas:** manter a classe órfã (dívida por definição);
+migrar o blob para um domínio novo (fora de escopo, e §3 diz que estado
+derivado não vira domínio); criar tabela para o blob (proibido).
+
+---
+
+### DE-4 · Menção a canal dentro da instrução do SDR — **RESOLVIDA (2026-08-02)**
+
+**O caso.** `agents/lead_triage/signals.py` contém, dentro do texto da
+instrução: *"(WhatsApp e Instagram são onde a dor aparece, não qual ela é)."*
+Isso casa com o teste literal do P2 e **não** viola o P2 em substância — a
+frase ensina o modelo a NÃO usar o canal como significado do problema.
+
+**Decisão do Marcos:** não é violação nesta rodada. A frase permanece.
+
+**Como o portão fica, e por que não foi afrouxado:** a ocorrência está
+declarada como `EXCECAO_CONHECIDA` em `tests/test_arquitetura.py`, com arquivo
+e linha exatos. Consequências:
+
+- a ocorrência conhecida passa;
+- **qualquer ocorrência nova falha** — a exceção não generaliza;
+- se a frase sumir da instrução, um teste próprio acusa que a exceção ficou
+  obsoleta e precisa ser removida. Portão que carrega exceção morta ensina a
+  ignorar exceções.
+
+---
+
+### Dívida registrada · Forja Engineering Guardian
+
+Existe uma GitHub App chamada **forja Engineering Guardian**, instalada com
+escopo restrito a um único repositório (`socramsea/business-process-agents`),
+com chave privada guardada **fora** deste repositório. Autenticação, JWT,
+Installation ID e Installation Token foram provados funcionando.
+
+**As permissões atuais são deliberadamente mais amplas do que o desenho final
+precisa. Isto é dívida de segurança conhecida.**
+
+Nada foi construído para o Guardian na Fase A: sem integração, sem webhook,
+sem workflow, sem credencial no repositório. A redução de privilégios acontece
+em fase própria, **antes** de qualquer operação automática.
+
+Identificadores numéricos da App e da instalação não estão registrados aqui de
+propósito — eles não são segredo, mas também não são necessários para o
+registro arquitetural, e repositório não é lugar de guardar o que não precisa
+estar nele.
+
+---
+
 *Documento normativo. Onde o código divergir dele, um dos dois está errado — e
 resolver qual, explicitamente, faz parte do trabalho.*

@@ -72,9 +72,13 @@ alembic history               # o que existe / what exists
 alembic downgrade -1          # desfaz a última / undoes the last one
 ```
 
-`MemoriaPostgres` **não cria tabela**: se ela não existir, é erro de deploy e
-tem que aparecer. Só o SQLite cria a sua inline, e isso é conveniência local —
-na divergência entre os dois, o Postgres é que está certo.
+O Postgres guarda a **memória da empresa** — Pessoa, Identidade e Mensagem
+(`core/memoria_corporativa.py`). `MemoriaCorporativaPostgres` **não cria
+tabela**: se ela não existir, é erro de deploy e tem que aparecer.
+
+O SQLite guarda outra coisa: o **estado acumulado do SDR**, que é derivado e
+recalculável. Ele cria a sua tabela inline porque nunca foi schema de produção.
+Os dois coexistem e não se sobrepõem.
 
 ### Rodar os testes de Postgres / Running the Postgres tests
 
@@ -86,8 +90,9 @@ pytest -k postgres -v
 ```
 
 > **`DATABASE_URL_TESTE` precisa apontar para outro banco.** O preparo dos
-> testes dá `TRUNCATE` na tabela de leads. `core/config.py` recusa rodar se as
-> duas URLs forem iguais, mas a primeira linha de defesa é você preencher certo.
+> testes dá `TRUNCATE` nas tabelas da memória da empresa. `core/config.py`
+> recusa rodar se as duas URLs forem iguais, mas a primeira linha de defesa é
+> você preencher certo.
 > The test database MUST be a different one — the suite truncates it.
 
 ### Backup

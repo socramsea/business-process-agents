@@ -11,19 +11,19 @@ em agents/lead_triage/acumulo.py, porque conhecem o nome de cada sinal.
 Storage lives here because it is shared; the accumulation RULES live with the
 agent, because they know each signal by name.
 
-QUEM MANDA NO SCHEMA — e isto é uma tensão conhecida, não um descuido:
+ESTE MÓDULO É O ESTADO LEGADO DO SDR, e só isso.
 
-  Postgres  o schema é das migrações (migrations/versions/). MemoriaPostgres
-            NÃO cria tabela: se ela não existir, é erro de deploy e tem que
-            aparecer, não ser remendado em silêncio no construtor.
-  SQLite    cria a tabela inline, como sempre fez. É conveniência local de uma
-            tabela só, sem migração.
+O que ele guarda é a pontuação acumulada — sinais travados, contagem de
+mensagens, agentes já indicados. Pela constituição isso é **estado derivado**
+(Camada 3): recalculável a partir das Mensagens, e por isso não ganha
+persistência corporativa.
 
-São duas fontes de verdade sobre o schema. Unificar exigiria migrações
-portáteis entre dialetos, o que proibiria JSONB e índice específico do
-Postgres. Na divergência, PRODUÇÃO MANDA: o Postgres é o certo e o SQLite é
-que se ajusta.
-Two schema sources on purpose; Postgres wins on divergence.
+A memória da Empresa Digital — Pessoa, Identidade, Mensagem — mora em
+`core/memoria_corporativa.py`, com o schema governado pelas migrações. Aqui
+não há Postgres: a implementação que existiu implementava o modelo
+`(tenant, lead) -> blob`, que é o modelo de registro que a constituição
+rejeita, e foi removida em vez de mantida como infraestrutura órfã.
+The corporate memory lives elsewhere; this is the SDR's derived state only.
 """
 
 import json
@@ -32,13 +32,6 @@ import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
-
-from psycopg.types.json import Jsonb
-from psycopg_pool import ConnectionPool
-
-# Teto para o pool abrir. Banco fora do ar tem que falhar na partida com o
-# motivo à vista, não na primeira mensagem de lead disfarçado de lentidão.
-TIMEOUT_CONEXAO_SEGUNDOS = 10.0
 
 
 class MemoriaLead(ABC):
@@ -168,66 +161,3 @@ class MemoriaSQLite(MemoriaLead):
     def fechar(self) -> None:
         with self._lock:
             self._con.close()
-
-
-class MemoriaPostgres(MemoriaLead):
-    """
-    Postgres com uma coluna JSONB por (tenant_id, lead_id).
-    Postgres with one JSONB column per (tenant_id, lead_id).
-
-    Três diferenças em relação ao SQLite, e nenhuma é cosmética:
-
-    1. NÃO cria tabela. O schema é das migrações. Tabela ausente é erro de
-       deploy e tem que estourar; construtor que remenda schema é como o
-       sistema fica com duas versões de tabela em produção sem ninguém notar.
-       Does not create the table — migrations own the schema.
-
-    2. Pool em vez de conexão única com lock. A conexão única do SQLite serializa
-       tudo num mutex, o que basta para um CLI e vira gargalo atrás de HTTP.
-       O pool também reabre conexão que o servidor derrubou.
-
-    3. JSONB em vez de TEXT. Mesmo blob, mas indexável e consultável quando o
-       CRM precisar filtrar por sinal — sem migração de dados na hora.
-    """
-
-    def __init__(self, url: str, pool: ConnectionPool | None = None):
-        # Costura para teste, mesmo padrão do transport/cliente das outras
-        # fontes: quem chama pode injetar um pool já pronto.
-        # Test seam, same pattern as transport=/cliente= elsewhere.
-        if pool is not None:
-            self._pool = pool
-            return
-
-        # open=False + open(wait=True): sem isto o pool tenta conectar numa
-        # thread de fundo e o construtor devolve um objeto que parece bom e
-        # falha só na primeira consulta. Preferimos o erro aqui.
-        self._pool = ConnectionPool(url, min_size=1, open=False)
-        self._pool.open(wait=True, timeout=TIMEOUT_CONEXAO_SEGUNDOS)
-
-    def carregar(self, tenant_id: str, lead_id: str) -> dict[str, Any]:
-        with self._pool.connection() as con:
-            linha = con.execute(
-                "SELECT estado FROM lead WHERE tenant_id = %s AND lead_id = %s",
-                (tenant_id, lead_id),
-            ).fetchone()
-
-        if linha is None:
-            return {}
-
-        # JSONB já volta como dict do psycopg — não há json.loads aqui de
-        # propósito. Variável anotada porque o driver devolve Any.
-        carregado: dict[str, Any] = linha[0]
-        return carregado
-
-    def salvar(self, tenant_id: str, lead_id: str, estado: dict[str, Any]) -> None:
-        with self._pool.connection() as con:
-            con.execute(
-                """
-                INSERT INTO lead (tenant_id, lead_id, estado) VALUES (%s, %s, %s)
-                ON CONFLICT (tenant_id, lead_id) DO UPDATE SET estado = excluded.estado
-                """,
-                (tenant_id, lead_id, Jsonb(estado)),
-            )
-
-    def fechar(self) -> None:
-        self._pool.close()

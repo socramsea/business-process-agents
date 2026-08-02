@@ -18,11 +18,11 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
 
     # O Postgres existe aqui e não na máquina de quem desenvolve. É por isso que
-    # os testes de MemoriaPostgres pulam localmente e RODAM aqui: sem este
+    # os testes da memória da empresa pulam localmente e RODAM aqui: sem este
     # serviço, o contrato do banco de produção nunca seria exercido de verdade,
     # e um portão que nunca fica vermelho não é portão.
-    # Postgres lives here, not on the dev machine — this is where the Postgres
-    # contract tests actually run.
+    # Postgres lives here, not on the dev machine — this is where the corporate
+    # memory contract tests actually run.
     services:
       postgres:
         image: postgres:16
