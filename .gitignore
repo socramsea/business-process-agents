@@ -1,7 +1,23 @@
+# Segredos: .env fica só na máquina. Chave em repo público é revogada pela
+# Anthropic em minutos por varredura automática — e até lá roda no seu crédito.
 .env
 .env.*
+# ...menos o modelo, que não tem segredo nenhum e precisa ser versionado.
+!.env.example
+
 __pycache__/
 *.pyc
 .venv/
 venv/
 *.log
+.pytest_cache/
+
+# banco local do MVP
+*.db
+
+# Cópias do estado dos leads. O diretório inteiro, e não só *.db: o pg_dump
+# gera .dump, e um dump traz TODOS os dados de lead em claro — nome, telefone
+# e o que a pessoa escreveu. Ignorar só a extensão que existia hoje é como
+# esse tipo de arquivo acaba commitado no dia em que o backend muda.
+# The whole directory: a pg_dump carries every lead's data in cleartext.
+backup/

@@ -123,7 +123,17 @@ def test_com_enriquecimento_a_nota_sobe():
 def test_contrato_de_saida_do_agente():
     r = LeadTriageAgent("forja-criativa", cliente=cliente_com(NEUTRO)).handle("oi", "lead-001")
 
-    assert set(r) == {"lead_id", "pontos", "classificacao", "observacoes"}
+    assert set(r) == {
+        "lead_id",
+        "pontos",
+        "classificacao",
+        "observacoes",
+        "mensagens",
+        "agente_indicado",
+        "agentes_vistos",
+        "escalar",
+        "motivo_escalada",
+    }
     assert r["lead_id"] == "lead-001"
     assert r["classificacao"] in {"quente", "morno", "frio"}
 

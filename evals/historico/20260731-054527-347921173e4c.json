@@ -1,0 +1,107 @@
+{
+  "quando": "2026-07-31T05:45:27+00:00",
+  "provedor": "openai",
+  "instrucao_sha": "347921173e4c",
+  "casos": 133,
+  "passaram": 120,
+  "por_campo": {
+    "agente_indicado": 0.9722222222222222,
+    "autoridade": 0.9833333333333333,
+    "descadastro": 1.0,
+    "orcamento": 1.0,
+    "resumo": 0.924812030075188,
+    "urgencia": 1.0
+  },
+  "atrito": {
+    "agente_indicado": 0.875,
+    "resumo": 0.75
+  },
+  "demais": {
+    "agente_indicado": 0.984375,
+    "autoridade": 0.9833333333333333,
+    "descadastro": 1.0,
+    "orcamento": 1.0,
+    "resumo": 0.936,
+    "urgencia": 1.0
+  },
+  "divergencias": [
+    {
+      "id": "ag_arm_01",
+      "campo": "resumo",
+      "esperado": "começa em terceira pessoa",
+      "devolvido": "Leads chegam, mas vendas se perdem por demora no follow-up."
+    },
+    {
+      "id": "ag_atd_03",
+      "campo": "resumo",
+      "esperado": "sem marca de primeira pessoa",
+      "devolvido": "O pós-venda está caótico, com demora na resposta aos clientes."
+    },
+    {
+      "id": "ag_com_04",
+      "campo": "resumo",
+      "esperado": "começa em terceira pessoa",
+      "devolvido": "Leads que param por preço elevado ficam sem follow-up."
+    },
+    {
+      "id": "amb_02",
+      "campo": "resumo",
+      "esperado": "começa em terceira pessoa",
+      "devolvido": "A empresa quer renovar a marca ainda este ano."
+    },
+    {
+      "id": "amb_04",
+      "campo": "autoridade",
+      "esperado": "False",
+      "devolvido": "True"
+    },
+    {
+      "id": "r6_amb_02",
+      "campo": "agente_indicado",
+      "esperado": "marketing",
+      "devolvido": "atendimento"
+    },
+    {
+      "id": "r6_amb_03",
+      "campo": "resumo",
+      "esperado": "começa em terceira pessoa",
+      "devolvido": "Clientes perguntam 40 vezes por dia sobre pedidos, resposta leva 10 minutos cada."
+    },
+    {
+      "id": "r6_amb_06",
+      "campo": "resumo",
+      "esperado": "sem marca de primeira pessoa",
+      "devolvido": "Perdi controle dos orçamentos após saída do vendedor."
+    },
+    {
+      "id": "r6_atd_04",
+      "campo": "resumo",
+      "esperado": "sem marca de primeira pessoa",
+      "devolvido": "As mensagens acumulam quando a recepcionista da clínica se ausenta."
+    },
+    {
+      "id": "r6_atd_06",
+      "campo": "resumo",
+      "esperado": "começa em terceira pessoa",
+      "devolvido": "Clientes têm que repetir problemas a diferentes atendentes diariamente."
+    },
+    {
+      "id": "r6_com_07",
+      "campo": "agente_indicado",
+      "esperado": "indefinido",
+      "devolvido": "comercial"
+    },
+    {
+      "id": "r6_ope_04",
+      "campo": "resumo",
+      "esperado": "sem marca de primeira pessoa",
+      "devolvido": "Recalculo manualmente custos de 80 fichas técnicas no Excel."
+    },
+    {
+      "id": "r6_ope_06",
+      "campo": "resumo",
+      "esperado": "sem marca de primeira pessoa",
+      "devolvido": "Montar pastas e formular documentos manualmente toma 2h por venda."
+    }
+  ]
+}

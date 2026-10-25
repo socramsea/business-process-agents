@@ -1,3 +1,13 @@
 anthropic>=0.60
+openai>=2.0
 httpx>=0.28
 beautifulsoup4>=4.12
+
+# Banco de produção. [binary] evita compilar libpq na instalação; [pool] é o
+# ConnectionPool que a MemoriaPostgres usa — conexão única com lock serializa
+# tudo num mutex, o que basta para um CLI e vira gargalo atrás de HTTP.
+psycopg[binary,pool]>=3.1
+
+# Migrações. Traz SQLAlchemy junto (o Alembic usa o engine dele), mas o projeto
+# NÃO usa ORM: as migrações são SQL escrito à mão, sem autogenerate.
+alembic>=1.13

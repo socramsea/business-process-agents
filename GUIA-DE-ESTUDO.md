@@ -301,3 +301,133 @@ Renomeado porque carrega duas coisas diferentes: o MOTIVO no status `vazio`
 ("não achei página sobre") e a MENSAGEM DA EXCEÇÃO no status `falha`.
 `erro` mentia no caso `vazio` — vazio não é erro, é resposta legítima.
 Ler como: "por que este resultado não traz dados".
+
+## Fase 2 — Medir sem se enganar ✅
+
+Esta fase não é sobre código. É sobre como saber se o que você construiu
+funciona mesmo, e como não se enganar sozinho no caminho.
+
+### 1. Rodar não é funcionar
+
+Três vezes o mesmo padrão apareceu neste projeto:
+
+- O stub `pontos = 75` rodava lindamente. Devolvia dicionário bem formado,
+  classificação válida, tudo verde. E dava a mesma nota para quem tinha 50 mil
+  para gastar e para quem pedia para sair do mailing.
+- Sem `__init__.py`, o Python executava sem reclamar. E o mypy parava em
+  `errors prevented further checking` — a análise de tipos inteira, perdida.
+- `git check-ignore .env.example` respondia bonito e não respondia a pergunta.
+  Quem respondeu foi `git add`, que recusou.
+
+O sistema aceitar é o piso, não a prova. Aceitar significa "não quebrou
+agora", não "está certo".
+
+### 2. Desconfie do instrumento antes do medido
+
+O verificador de `resumo` acusou o modelo quatro vezes e estava errado nas
+quatro: não reconhecia `Estamos`, depois `Gostei`/`Entrei`/`Solicitei`, depois
+`Pedi`, depois `Copio`/`Perco`/`Recebo`. Português forma 1ª pessoa do singular
+com verbo terminado em `-o`, e a mesma terminação cobre substantivo (`vídeo`,
+`orçamento`, `erro`) — lista de palavras nunca ia fechar.
+
+O placar subiu de 75% para 92% **sem tocar no modelo**, só consertando a régua.
+
+Quando a medição diz que a coisa está quebrada, a primeira pergunta é se a
+régua está torta.
+
+### 3. Um número só mente por agregação
+
+Aconteceu duas vezes, e as duas foram determinantes.
+
+- O total mal se moveu (86/84/87 → 86/85/83) e dentro dele `autoridade` tinha
+  caído de 100% para 98%. Sem taxa por campo, a regressão passava batido.
+- O relatório dizia 97% enquanto os casos de fronteira estavam em 78%.
+  Dezenove pontos escondidos, justamente onde a regressão aparece primeiro.
+  Quando a quarta regra entrou, o ganho real na fronteira (62–75% → 88–88%)
+  apareceu no total como três pontinhos indistinguíveis de ruído.
+
+Caso fácil é maioria e dilui o difícil. **O número que não se mexe é o mais
+perigoso que existe.**
+
+### 4. Rodar uma vez é anedota
+
+Uma rodada deu 100%. As duas seguintes deram 97% e 97%, sem mudar nada.
+Reportar a primeira teria entregue métrica falsa com cara de conquista.
+
+O inverso também vale: diante de uma dúvida sobre padrão com n=3, bastaram
+40 chamadas, quatro centavos e noventa segundos para fechar a questão.
+**Medir custou menos que discutir.**
+
+### 5. O gabarito também é hipótese
+
+Quando o modelo discorda de forma estável — 10/10, 3/3 — a chance de o erro
+estar do nosso lado é real.
+
+Numa varredura, a suspeita caiu sobre o gabarito e o gabarito estava certo:
+a contradição morava na REGRA, com duas linhas do mesmo documento mandando em
+direções opostas ("lead que chegou e se perdeu é comercial" contra "classifique
+pela causa, não pela consequência"). Trocar o rótulo do caso teria escondido o
+problema e deixado a contradição esperando o próximo caso.
+
+**Defeito que aparece num caso costuma morar na regra.**
+
+### 6. O portão precisa poder ficar vermelho
+
+A regra "reporte em vez de tentar consertar" é o que segura a honestidade do
+processo. Sem ela, cada queda vira ajuste imediato e você persegue a métrica
+em vez de entender o que ela diz.
+
+Portão que nunca dispara não é portão, é decoração.
+
+Junto: crítica adversarial ANTES de commitar pegou quatro defeitos graves numa
+instrução, incluindo um que contradizia a regra do próprio autor. Nenhum deles
+apareceria em revisão amigável.
+
+### 7. Como confiar que está na linha certa
+
+Não existe checagem que não possa ser burlada por quem conhece a checagem.
+O que torna o processo robusto não é esperteza — é as verificações serem
+**baratas de rodar você mesmo e caras de falsificar**.
+
+As quatro perguntas (critério do Marcos):
+
+1. **Os números oscilam?** Resultado idêntico três vezes seguidas contradiz a
+   variância já medida. Oscilação com o nome do caso que falhou em cada rodada
+   é sinal de medição real.
+2. **A lista está completa?** Nome por extenso, sem reticências. Quem lê do
+   arquivo não deixa lacuna.
+3. **O portão ficou vermelho alguma vez?** 100% em tudo depois de subir 50
+   pontos numa categoria é suspeito, não é conquista.
+4. **Separa o que mediu do que achou?** "É leitura minha, não medição" seguido
+   do que faltaria para provar é o oposto de relatório inventado.
+
+O que eu acrescentaria:
+
+5. **Dá para reproduzir sem quem escreveu o relatório?** Se o comando está lá
+   e você roda e dá o mesmo, a confiança não depende de ninguém.
+6. **O número está desagregado?** Taxa global esconde troca de erro entre
+   campos e dissolve a fronteira nos casos fáceis.
+
+### 8. As respostas de entrevista
+
+Sobre teste que não pode falhar:
+"Um teste que usa print em vez de assert passa mesmo com a lógica quebrada.
+Eu escrevo primeiro o teste que falha, vejo ele vermelho, e só então
+implemento. Se ele nunca ficou vermelho, eu não sei o que ele protege."
+
+Sobre medição:
+"Rodar uma vez é anedota. Eu rodo três e reporto a faixa, não o melhor
+resultado. E desagrego por campo, porque taxa global esconde regressão:
+já vi um total praticamente parado escondendo um campo caindo de 100% para 98%."
+
+Sobre régua torta:
+"Antes de acusar o sistema medido, eu verifico o instrumento. Já subi um
+placar de 75% para 92% sem tocar em uma linha do código medido — só
+consertando o verificador, que estava errado."
+
+### Próximos passos
+- [ ] Trocar heurística de primeira pessoa por juiz (LLM-as-judge) ou aceitar
+      `resumo` como advertência em vez de divergência dura
+- [ ] Resolver a contradição entre "lead que chegou e se perdeu é comercial" e
+      o teste de causa vs. consequência
+- [ ] Decidir se o catálogo de agentes vira config por tenant (ARCHITECTURE §7)
